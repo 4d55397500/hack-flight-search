@@ -9,37 +9,73 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	//"strconv"
 	"strings"
-	//"github.com/beevik/etree"
 )
 
-func main() {
-	expediaUrl := "https://www.expedia.com/Flights-Search?trip=oneway&leg1=from:nyc,to:mia,departure:09/01/2019TANYT&passengers=adults:1,children:0,seniors:0,infantinlap:Y&options=cabinclass%3Aeconomy&mode=search&origref=www.expedia.com"
-	//doc := etree.NewDocument() kexpediaUrl := "https://www.expedia.com/Flights-Search?trip=oneway&leg1=from:nyc,to:mia,departure:09/01/2019TANYT&passengers=adults:1,children:0,seniors:0,infantinlap:Y&options=cabinclass%3Aeconomy&mode=search&origref=www.expedia.com"
-	//fmt.Println(expediaUrl)
-	//url := "https://www.example.com"
-	//httpClientTest(url)
-	expediaFlightSearch(expediaUrl)
+
+type FlightData struct {
+
+	DepartureCity string
+	DepartureCode string
+	DepartureTimeIsoStr string
+	ArrivalCity string
+	ArrivalCode string
+	ArrivalTimeIsoStr string
+	Price float64
+	Airline string
+
 }
 
-//func main() {
-//	in := []byte(`{ "votes": { "option_A": "3" } }`)
-//	var raw map[string]interface{}
-//	json.Unmarshal(in, &raw)
-//	raw["count"] = 1
-//	out, _ := json.Marshal(raw)
-//	println(string(out))
-//}
+type Content struct {
+	Content string
+}
 
-func unMarshalData(data string) {
-	fmt.Println(data)
+type SearchCriteria struct {
+	DepartureCode string
+	ArrivalCode string
+	DepartureDate string
+}
+
+
+func readContent(content string) {
+	var raw map[string]interface{}
+	json.Unmarshal([]byte(content), &raw)
+	legs := raw["legs"].(map[string]interface{})
+	for _, v := range legs {
+
+		legData := v.(map[string]interface{})
+		departureCity := legData["departureLocation"].(map[string]interface{})["airportCity"].(string)
+		departureCode := legData["departureLocation"].(map[string]interface{})["airportCode"].(string)
+		departureTimeIsoStr := legData["departureTime"].(map[string]interface{})["isoStr"].(string)
+		arrivalCity := legData["arrivalLocation"].(map[string]interface{})["airportCity"].(string)
+		arrivalCode := legData["arrivalLocation"].(map[string]interface{})["airportCode"].(string)
+		arrivalTimeIsoStr := legData["arrivalTime"].(map[string]interface{})["isoStr"].(string)
+		price := legData["price"].(map[string]interface{})["totalPriceAsDecimal"].(float64)
+		airline := legData["carrierSummary"].(map[string]interface{})["airlineName"].(string)
+
+
+		flightData := FlightData{
+			DepartureCity: departureCity,
+			DepartureCode: departureCode,
+			DepartureTimeIsoStr: departureTimeIsoStr,
+			ArrivalCity: arrivalCity,
+			ArrivalCode: arrivalCode,
+			ArrivalTimeIsoStr: arrivalTimeIsoStr,
+			Price: price,
+			Airline: airline,
+		}
+
+		flightDataJson, _ := json.Marshal(flightData)
+		fmt.Println(string(flightDataJson))
+
+	}
 }
 
 func expediaFlightSearch(expediaUrl string) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", expediaUrl, nil)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36")
+	android74Ua := "Mozilla/5.0 (Linux; Android 9; ONEPLUS A5010) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Mobile Safari/537.36 Brave/74"
+	req.Header.Set("User-Agent", android74Ua)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
@@ -51,7 +87,6 @@ func expediaFlightSearch(expediaUrl string) {
 			log.Fatal(err)
 		}
 		bodyString := string(bodyBytes)
-		//log.Printf(bodyString)
 		reader := strings.NewReader(bodyString)
 		root, err := html.Parse(reader)
 		if err != nil {
@@ -72,42 +107,30 @@ func expediaFlightSearch(expediaUrl string) {
 		xpath = "//script[@id='cachedResultsJson']//text()"
 		path := xmlpath.MustCompile(xpath)
 		if value, ok := path.String(xmlroot); ok {
-			//log.Println("Found:", value)
-			//s, err := strconv.Unquote(value)
 			var content Content
 			err := json.Unmarshal([]byte(value), &content)
-			fmt.Println(err)
-			fmt.Println(content.Content)
+			if err != nil {
+				log.Fatal(err)
+			}
+			readContent(content.Content)
 		}
 	}
 }
 
-type Content struct {
-	Content string
+
+func main() {
+
+	search := SearchCriteria{
+		DepartureCode: "nyc",
+		ArrivalCode: "sfo",
+		DepartureDate: "11/01/2019",
+	}
+
+	expediaUrl := fmt.Sprintf(
+		"https://www.expedia.com/Flights-Search?trip=oneway&leg1=from:%s,to:%s,departure:%sTANYT&passengers=adults:1,children:0,seniors:0,infantinlap:Y&options=cabinclass%3Aeconomy&mode=search&origref=www.expedia.com",
+		search.DepartureCode,
+		search.ArrivalCode,
+		search.DepartureDate)
+	expediaFlightSearch(expediaUrl)
 }
 
-
-//	in := []byte(`{ "votes": { "option_A": "3" } }`)
-//	var raw map[string]interface{}
-//	json.Unmarshal(in, &raw)
-//	raw["count"] = 1
-//	out, _ := json.Marshal(raw)
-//	println(string(out))
-//}
-func httpClientTest(url string) {
-	client := &http.Client{}
-	req, _ := http.NewRequest("GET", url, nil)
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-		bodyString := string(bodyBytes)
-		log.Printf(bodyString)
-	}
-}
