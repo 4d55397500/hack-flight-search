@@ -1,7 +1,9 @@
 hack-flight-search
 ---
 
-hack flight search by scraping a certain unspecified flight search engine
+hack flight search by scraping a certain unspecified flight search engine. 
+
+based off this [script](https://gist.github.com/scrapehero/bc34513e2ea72dc0890ad47fbd8a1a4f)
 
 
 #### Disclaimer
