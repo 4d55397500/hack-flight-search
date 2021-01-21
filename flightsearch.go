@@ -126,6 +126,8 @@ func main() {
 		DepartureDate: "11/01/2019",
 	}
 
+	// !! new format as of Jan. 2021
+	//newUrl := "https://www.expedia.com/Flights-Search?flight-type=on&mode=search&trip=oneway&leg1=from%3ASan+Francisco+%28SFO+-+San+Francisco+Intl.%29%2Cto%3ANew+York+%28NYC+-+All+Airports%29%2Cdeparture%3A2%2F4%2F2021TANYT&options=cabinclass%3Aeconomy&passengers=children%3A0%2Cadults%3A1%2Cseniors%3A0%2Cinfantinlap%3AY&fromDate=2%2F4%2F2021&d1=2021-02-04"
 	expediaUrl := fmt.Sprintf(
 		"https://www.expedia.com/Flights-Search?trip=oneway&leg1=from:%s,to:%s,departure:%sTANYT&passengers=adults:1,children:0,seniors:0,infantinlap:Y&options=cabinclass%3Aeconomy&mode=search&origref=www.expedia.com",
 		search.DepartureCode,
